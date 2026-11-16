@@ -14,7 +14,7 @@ Telegram bot project implementing the agreed DiskWala-only download flow.
 - No daily download quota. Different links can be processed concurrently; actual concurrency is limited by the VPS/server's RAM, CPU, disk and network.
 - Owner-only `/stats`, `/broadcast`, `/setgroup`, `/maintenance on`, and `/maintenance off` commands. Owner commands work only in the owner's private chat.
 - SQLite persistence, server-only rotating logs, cache cleanup, and automatic restart using systemd/Docker restart policy.
-- Optional GitHub Actions controller for a 5-hour online / 20-minute offline cycle using external host webhooks.
+- Optional GitHub Actions controller for a 5-hour-50-minute online / 20-minute offline cycle using external host webhooks.
 
 
 ## Lightweight Android/Termux test mode
@@ -121,18 +121,21 @@ Run these only in the bot's private chat, from the Telegram account whose numeri
 - Broadcast sends to users who have previously opened the bot and sent it a message. Telegram may reject messages to users who blocked the bot; those are counted as failed.
 - The bot does not expose a `/logs` command. Errors are written only to `data/logs/bot.log` and container/server logs.
 
-## GitHub Actions 5h ON / 20m OFF cycle
+## GitHub Actions 5h50m ON / 20m OFF cycle
 
-The workflow at `.github/workflows/uptime-cycle.yml` checks the desired state every five minutes. It is a controller only; it does **not** host the bot. It needs your hosting provider to expose two idempotent HTTP POST webhooks which start and stop the service/instance. The workflow needs repository read permission for checkout.
+The workflow at `.github/workflows/uptime-cycle.yml` checks the desired state every five minutes. It is a controller only; it does **not** host the bot. It needs your hosting provider to expose two idempotent HTTPS POST webhooks which start and stop the service/instance. The workflow needs repository read permission for checkout.
 
 Add these GitHub repository Actions secrets:
 
-- `CYCLE_ANCHOR_UTC` — cycle start, ISO-8601 UTC timestamp, e.g. `2026-11-16T00:00:00Z`.
-- `HOST_START_WEBHOOK` — your host's start-service webhook.
-- `HOST_STOP_WEBHOOK` — your host's stop-service webhook.
+- `CYCLE_ANCHOR_UTC` — cycle start, ISO-8601 timestamp with timezone, e.g. `2026-11-16T00:00:00Z`.
+- `HOST_START_WEBHOOK` — your host's start-service HTTPS webhook.
+- `HOST_STOP_WEBHOOK` — your host's stop-service HTTPS webhook.
 
-The cycle is 300 minutes online + 20 minutes offline (320 minutes total), repeated from the anchor. The webhook endpoints must be safe to call repeatedly. GitHub scheduled workflows can be delayed, and the controller checks every five minutes, so transitions are approximate—not second-exact. If your provider has no start/stop webhook, this workflow cannot control it until a provider-specific integration is added.
+The cycle is **350 minutes online + 20 minutes offline** (370 minutes total), repeated from the anchor. Before the anchor, the desired state is offline. The webhook endpoints must be idempotent because GitHub may repeat or delay scheduled runs. The controller sends JSON `{"desired_state": "online"}` or `{"desired_state": "offline"}` and does not print webhook URLs or response bodies.
 
+GitHub Actions is only the controller; the hosting provider runs the bot. Scheduled workflows can be delayed or skipped, and this workflow polls every five minutes, so transitions are approximate—not second-exact. A public repository's scheduled workflows may also be automatically disabled after a long period without repository activity. If your provider has no start/stop webhook, this workflow cannot control it until a provider-specific integration is added.
+
+The bot's runtime variables (`BOT_TOKEN`, `OWNER_ID`, `DESTINATION_CHAT_ID`, `TELEGRAM_API_ID`, and `TELEGRAM_API_HASH`) belong in the hosting provider's private environment-variable settings. They are **not** automatically passed to the bot just because similarly named GitHub Actions secrets exist. The repository's `.env.example` contains placeholders only; never commit a real `.env` file.
 ## Security
 
 - Never commit `.env`, bot token, Telegram API hash, or owner ID to a public repository.
