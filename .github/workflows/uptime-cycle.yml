@@ -1,0 +1,30 @@
+name: DiskWala Bot uptime cycle
+
+on:
+  schedule:
+    # GitHub Actions cron is UTC and can be delayed. This polls the desired
+    # 5h-online / 20m-offline phase every five minutes.
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diskwala-uptime-cycle
+  cancel-in-progress: false
+
+jobs:
+  control-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Apply current cycle phase
+        env:
+          CYCLE_ANCHOR_UTC: ${{ secrets.CYCLE_ANCHOR_UTC }}
+          HOST_START_WEBHOOK: ${{ secrets.HOST_START_WEBHOOK }}
+          HOST_STOP_WEBHOOK: ${{ secrets.HOST_STOP_WEBHOOK }}
+        run: python .github/scripts/cycle_controller.py

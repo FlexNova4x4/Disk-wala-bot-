@@ -1,0 +1,19 @@
+[Unit]
+Description=DiskWala Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=diskwalabot
+Group=diskwalabot
+WorkingDirectory=/opt/diskwala-bot
+EnvironmentFile=/opt/diskwala-bot/.env
+ExecStart=/opt/diskwala-bot/.venv/bin/python /opt/diskwala-bot/main.py
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target
