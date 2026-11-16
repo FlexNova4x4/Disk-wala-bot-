@@ -25,8 +25,8 @@ def main() -> int:
     start_url = os.environ.get("HOST_START_WEBHOOK", "").strip()
     stop_url = os.environ.get("HOST_STOP_WEBHOOK", "").strip()
     if not anchor_raw or not start_url or not stop_url:
-        print("Missing CYCLE_ANCHOR_UTC, HOST_START_WEBHOOK, or HOST_STOP_WEBHOOK secret.", file=sys.stderr)
-        return 2
+        print("Cycle controller skipped: hosting secrets are not configured yet.")
+        return 0
 
     try:
         anchor = parse_anchor(anchor_raw)
